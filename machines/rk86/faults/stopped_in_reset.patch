@@ -1,0 +1,13 @@
+diff --git a/machines/rk86/rtl/rk86_clocks16.v b/machines/rk86/rtl/rk86_clocks16.v
+index 6bd9fc9..365753f 100644
+--- a/machines/rk86/rtl/rk86_clocks16.v
++++ b/machines/rk86/rtl/rk86_clocks16.v
+@@ -40,7 +40,7 @@ reg [3:0] step = 4'd0;      // SILENT: the power-up phase of the 8224 against th
+ reg [3:0] cnt = 4'd0;
+ reg       ststb_sync = 1'b0;    // SYNC sampled at p8: the strobe term of the NOR, low for one period
+ always @(posedge clk)
+-    if (ce16) begin
++    if (ce16 && resin_n) begin
+         step <= step == 4'd8 ? 4'd0 : step + 4'd1;
+         cnt <= cnt == 4'd11 ? 4'd0 : cnt + 4'd1;
+         phi1 <= step == 4'd0 || step == 4'd1;

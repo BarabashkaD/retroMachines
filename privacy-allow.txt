@@ -1,0 +1,6 @@
+# Privacy allow-list, read by lib/retroICs/tools/check_privacy.py (format in its docstring).
+# One entry per line: <kind> <pattern> # <reason>. Reviewed like code.
+#
+# The agent attribution trailer of commit messages. [@] and [.] keep this file itself free of
+# email-shaped strings.
+trailer ^Co-Authored-By: Claude [A-Za-z0-9. ]+ <noreply[@]anthropic[.]com>$ # agent attribution trailer of commit messages

@@ -1,0 +1,31 @@
+retroMachines
+Copyright (c) 2026, Dmitry Veremeev (BarabashkaD), https://github.com/BarabashkaD
+
+Contains retroMachines by Dmitry Veremeev (BarabashkaD), https://github.com/BarabashkaD, BSD-3-Clause and CC BY 4.0.
+
+The licences require keeping the copyright notice (BSD-3-Clause) and the attribution (CC BY 4.0)
+in copies and derived works.
+
+The owner's files: every Markdown file is under CC BY 4.0 (LICENSES/CC-BY-4.0.txt), every other
+file under BSD-3-Clause (LICENSE, LICENSES/BSD-3-Clause.txt). The exceptions are the ROM images
+below and the licence texts under LICENSES/ (the official texts, LICENSES/README.md). Faults
+(faults/*.patch, git diff output) have no header: each is under the licence of the file it
+patches.
+
+ROM images (machines/rk86/roms/monitor.bin, font.bin), not the owner's work and not relicensed:
+- monitor.bin: the monitor of the Radio-86RK, published in Radio magazine (Moscow), 1986, by the
+  authors of the Radio-86RK design, D. Gorshkov, G. Zelenko, Yu. Ozerov and S. Popov. Not yet
+  checked against the published listing or a dump of an original ROM.
+- font.bin: the character generator of the Radio-86RK; its authorship and publication are not
+  established (open).
+Where the stored copies come from and their licence status: machines/rk86/roms/PROVENANCE.md
+(the only licence statement found for them names LICENSES/LicenseRef-Tselikov-BSD.txt; the status
+of the original publication is open).
+
+The IC models that the machines instantiate are in retroICs (the submodule lib/retroICs); their
+authors, origins and licences are in the NOTICE of retroICs.
+
+Builds: a bitstream or netlist built from a machine of this repo carries the owner's copyright line
+and the licence (LICENSE) and the attribution line above. It also includes the IC models of
+retroICs, so it carries the NOTICE of retroICs as well. ROM images loaded with it keep their own
+status and the credit above.

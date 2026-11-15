@@ -1,0 +1,3 @@
+[submodule "lib/retroICs"]
+	path = lib/retroICs
+	url = https://github.com/BarabashkaD/retroICs

@@ -1,0 +1,215 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# SPDX-FileCopyrightText: 2026 Dmitry Veremeev (BarabashkaD), https://github.com/BarabashkaD
+# The Radio-86RK with the original 16 MHz timing. Its clock block (the 8224 and the SN7492,
+# rtl/rk86_clocks16.v; their records in ics/) and video path (rtl/rk86_video16.v) are files of
+# this machine. The memory model of the machine TB is tb/tb_rk86_mem16.v: simrun run --replace
+# <that file>=FILES compiles a platform's memory in its place; a fault that patches only that file
+# is then SKIPPED.
+[component]
+name = "machines/rk86"
+kind = "machine"
+title = "Radio-86RK"
+reproduces = "rk86"
+fidelity = "board"
+interface = 1
+
+[rtl]
+top = "rk86_machine16"
+files = ["rtl/rk86_clocks16.v", "rtl/rk86_video16.v", "rtl/rk86_machine16.v"]
+depends = ["intel/8080a", "intel/8255a", "intel/8257", "intel/8275"]
+iverilog_flags = ["-g2005"]
+
+# ---- the tables below are edited by hand, like the header above. A fault with match = "anywhere"
+# gives its reason in its own comment.
+
+[[test]]
+name = "clocks16"
+tier = "quick"
+top = "tb_clocks16"
+files = ["tb/tb_clocks16.v"]
+
+[[test]]
+name = "video16"
+tier = "quick"
+top = "tb_video16"
+files = ["tb/tb_video16.v"]
+
+[[test]]
+name = "machine16"
+tier = "standard"
+top = "tb_rk86_machine16"
+files = [
+    "tb/cpu_power_up.vh",
+    "tb/tb_rk86_machine16.v",
+    "tb/tb_m16_dma_checks.v",
+    "tb/tb_rk86_mem16.v",
+]
+params = { FRAMES = 12 }
+data = { bios = { path = "roms/monitor.bin", sizes = [2048] }, font = { path = "roms/font.bin", sizes = [1024] } }
+
+[[negative]]
+test = "clocks16"
+fault = "faults/divider_10.patch"
+expect = "ERROR: clocks16: f1 period 10"
+
+# match anywhere: the patched f2 step also sets the phi2 level, whose window check (CLK-4,
+# 'phi2 at period 2') samples one period before the f2 step check (CLK-2) sees the wrong step
+[[negative]]
+test = "clocks16"
+fault = "faults/f2_step_4.patch"
+expect = "ERROR: clocks16: f2 at step 4"
+match = "anywhere"
+
+[[negative]]
+test = "clocks16"
+fault = "faults/f2_fall_step_6.patch"
+expect = "ERROR: clocks16: f2_fall at step 6"
+
+# match anywhere: the moved edge also samples another RESIN than p3 does, so the value check
+# (CLK-6, 'reset 1') fires first when RESIN toggles between the two edges, as at its first
+# toggle; the change off p3 (CLK-5) follows a few ce16 later
+[[negative]]
+test = "clocks16"
+fault = "faults/reset_on_f1.patch"
+expect = "ERROR: clocks16: reset changed off p3"
+match = "anywhere"
+
+# match anywhere: as reset_on_f1 (the moved edge samples another RESIN; 'reset 1' may come first)
+[[negative]]
+test = "clocks16"
+fault = "faults/reset_on_f2_fall.patch"
+expect = "ERROR: clocks16: reset changed off p3"
+match = "anywhere"
+
+[[negative]]
+test = "clocks16"
+fault = "faults/ststb_no_reset.patch"
+expect = "ERROR: clocks16: ststb at period"
+
+[[negative]]
+test = "clocks16"
+fault = "faults/stopped_in_reset.patch"
+expect = "ERROR: clocks16: f1 period"
+
+[[negative]]
+test = "clocks16"
+fault = "faults/ie4_div10.patch"
+expect = "ERROR: clocks16: ie4 count"
+
+[[negative]]
+test = "clocks16"
+fault = "faults/f2_fall_missing.patch"
+expect = "ERROR: clocks16: f2_fall count"
+
+[[negative]]
+test = "clocks16"
+fault = "faults/dot_ce_odd.patch"
+expect = "ERROR: clocks16: dot_ce alignment"
+
+# match anywhere: the patch moves both QD edges one count early; the rise (count 4) comes before
+# the fall (count 10) in the 12-count, so 'cclk_rise alignment' prints first
+[[negative]]
+test = "clocks16"
+fault = "faults/cclk_misaligned.patch"
+expect = "ERROR: clocks16: cclk_fall alignment"
+match = "anywhere"
+
+[[negative]]
+test = "clocks16"
+fault = "faults/ststb_reset_lag.patch"
+expect = "ERROR: clocks16: ststb at period"
+
+[[negative]]
+test = "video16"
+fault = "faults/video_load_at_0.patch"
+expect = "ERROR: video16: dot 1 of character 1"
+
+[[negative]]
+test = "video16"
+fault = "faults/video_shift_order.patch"
+expect = "ERROR: video16: dot 0 of character 2"
+
+[[negative]]
+test = "video16"
+fault = "faults/video_lten_unlatched.patch"
+expect = "ERROR: video16: lten at dot 0 of character 15"
+
+[[negative]]
+test = "video16"
+fault = "faults/video_vsp_ignored.patch"
+expect = "ERROR: video16: vsp at dot 0 of character 7"
+
+[[negative]]
+test = "machine16"
+fault = "faults/crt_wr_without_ior.patch"
+expect = "ERROR: glue: 8275 WR: not CPU WR AND 8257 IOR"
+
+[[negative]]
+test = "machine16"
+fault = "faults/dma_on_char_clock.patch"
+expect = "ERROR: glue: 8257 CLK: not 8224 F2"
+
+[[negative]]
+test = "machine16"
+fault = "intel/8275:vg75_drq_held"
+expect = "ERROR: hold periods: HRQ high after theta-up of S4"
+
+[[negative]]
+test = "machine16"
+fault = "intel/8275:vg75_burst_count_ignored"
+expect = "ERROR: burst length: frame * fill: DRQ again after transfer 8 of burst 0, expected a burst of 8"
+
+[[negative]]
+test = "machine16"
+fault = "intel/8275:vg75_burst_space_ignored"
+expect = "ERROR: burst space: frame * fill: DRQ back * ce16 after the WR rise of transfer 8 of burst 0"
+
+[[negative]]
+test = "machine16"
+fault = "intel/8275:vg75_hrtc_7"
+expect = "ERROR: hrtc: HRTC high 84 ce16, expected 96"
+
+[[negative]]
+test = "machine16"
+fault = "faults/bus_on_hlda.patch"
+expect = "ERROR: glue: bus_a: not the 8257 address while AEN, else the CPU address"
+
+[[negative]]
+test = "machine16"
+fault = "intel/8257:vt57_extra_state"
+expect = "ERROR: hold periods: HRQ high after theta-up of S4"
+
+[[negative]]
+test = "machine16"
+fault = "intel/8257:vt57_s4_to_s1"
+expect = "ERROR: hold periods: HRQ high after theta-up of S4"
+
+# match anywhere: the memory drives only while its read strobe is active, so the first ERROR is
+# 'sample', from the opcode load during reset (DBIN low; the reset term of smp_op,
+# tb_m16_dma_checks.v), not this fault's own check; the DMA byte check prints its own mismatches
+# later (every DMA byte), so the text may come on any line
+[[negative]]
+test = "machine16"
+fault = "faults/mem16_dropped_after_rd.patch"
+expect = "ERROR: dma byte: the 8275 holds ff at the IOR rise"
+match = "anywhere"
+
+[[negative]]
+test = "machine16"
+fault = "intel/8275:vg75_underrun_restart_late"
+expect = "ERROR: dma byte: frame *: its first DMA byte (the row 0 fill) is transfer"
+
+# a DMA read outside the RAM as the old model had it (rom low while AEN, the 8275 fed from the
+# memory), caught by the forced DMA read pass (phase 8) at FFFF. match anywhere: the patch also
+# drops rom in start-up while AEN (phase 9), so the start-up check ('rom low') prints first on the
+# same clock as this fault's own check
+[[negative]]
+test = "machine16"
+fault = "faults/dma_rom_from_ram.patch"
+expect = "ERROR: glue: rom: not E000-FFFF of the system address (every address in start-up)"
+match = "anywhere"
+
+[[negative]]
+test = "machine16"
+fault = "faults/ext_di_ignored.patch"
+expect = "ERROR: glue: CPU D input: not the device at its address"

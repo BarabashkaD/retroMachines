@@ -1,0 +1,13 @@
+diff --git a/machines/rk86/rtl/rk86_clocks16.v b/machines/rk86/rtl/rk86_clocks16.v
+index 6bd9fc9..f16f48b 100644
+--- a/machines/rk86/rtl/rk86_clocks16.v
++++ b/machines/rk86/rtl/rk86_clocks16.v
+@@ -46,7 +46,7 @@ always @(posedge clk)
+         phi1 <= step == 4'd0 || step == 4'd1;
+         phi2 <= step >= F2_STEP && step <= F2_STEP + 4;
+         ststb_sync <= sync && step == 4'd8;
+-        if (step == F2_STEP + 1) begin          // p3: "Φ2 D" (SILENT: one period after Φ2↑)
++        if (step == 4'd0) begin          // p3: "Φ2 D" (SILENT: one period after Φ2↑)
+             reset <= !resin_n;
+             ready <= rdyin;
+         end

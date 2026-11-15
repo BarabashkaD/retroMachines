@@ -1,0 +1,14 @@
+diff --git a/machines/rk86/rtl/rk86_clocks16.v b/machines/rk86/rtl/rk86_clocks16.v
+index 6bd9fc9..a723e6c 100644
+--- a/machines/rk86/rtl/rk86_clocks16.v
++++ b/machines/rk86/rtl/rk86_clocks16.v
+@@ -51,7 +51,8 @@ always @(posedge clk)
+             ready <= rdyin;
+         end
+     end
+-assign ststb_n = !(ststb_sync || reset);    // the NOR: RESET reaches STSTB without a clock lag
++reg reset_d = 1'b1; always @(posedge clk) if (ce16) reset_d <= reset;
++assign ststb_n = !(ststb_sync || reset_d);    // the NOR: RESET reaches STSTB without a clock lag
+ assign f1 = ce16 && step == 4'd0;
+ assign f2 = ce16 && step == F2_STEP;
+ assign f2_fall = ce16 && step == F2_FALL_STEP;

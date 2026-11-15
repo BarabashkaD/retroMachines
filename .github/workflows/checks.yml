@@ -1,0 +1,94 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# SPDX-FileCopyrightText: 2026 Dmitry Veremeev (BarabashkaD), https://github.com/BarabashkaD
+# Lint: the tools' own tests (the wording test tools/tests/test_wording.py with the patterns of
+# tools/tests/wording_lib.py, and the guard tools/tests/test_generic.py included), the record
+# checker of the retroICs submodule with the retroICs IDs checked against the submodule and the
+# retroComputersDocs IDs against a pinned retroComputersDocs checkout, and the privacy checker of
+# the retroICs submodule (commit history included). Quick: Icarus Verilog 13.0, the TBs of tier
+# quick (without faults).
+name: checks
+
+on:
+  pull_request:
+    branches: [main]
+  # every push (side branches too: no pull request until a side branch is ready)
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: pwsh
+
+env:
+  # retroComputersDocs commit whose board records and registries the CLK, IE4, CPU, VID, GLUE, MEM,
+  # TAPE and SND citations are checked against; move it on purpose
+  RCD_REF: 48ea03d265f5e325ab64345077424955d263af50
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # the pull request head, not GitHub's synthetic merge commit
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: BarabashkaD/retroComputersDocs
+          ref: ${{ env.RCD_REF }}
+          # under build/ (ignored), so the checks of this repo do not see it; read for its records
+          # and registries only, no submodules
+          path: build/retroComputersDocs
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.14'
+      - name: Tool tests (wording test and guard included)
+        run: python -B -m unittest discover -s tools/tests -v
+      - name: Records (record and source IDs; retroICs and retroComputersDocs as externals)
+        # --records machines, not .: the checkout under build/ is read only as the external
+        run: python -B lib/retroICs/tools/check_records.py --repo . --records machines --external retroICs=lib/retroICs --external retroComputersDocs=build/retroComputersDocs
+      - name: Privacy (working tree and the commits of the pull request)
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          $mergeBase = git merge-base $env:BASE_SHA HEAD
+          if ($LASTEXITCODE -ne 0 -or -not $mergeBase) {
+            throw "git merge-base $env:BASE_SHA HEAD failed (exit $LASTEXITCODE)"
+          }
+          python -B lib/retroICs/tools/check_privacy.py --repo . --history $mergeBase
+      - name: Privacy (working tree and every commit)
+        if: github.event_name != 'pull_request'
+        run: python -B lib/retroICs/tools/check_privacy.py --repo . --all
+
+  quick:
+    name: quick
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.14'
+      - uses: ./lib/retroICs/.github/actions/setup-iverilog
+      - name: TBs of tier quick
+        env:
+          PYTHONPATH: lib/retroICs/tools
+        run: python -B -m simrun run machines --tier quick
